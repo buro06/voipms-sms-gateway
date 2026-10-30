@@ -1,0 +1,22 @@
+[Unit]
+Description=voipms-sms-gateway (voip.ms <-> Telegram SMS/MMS)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=smsgw
+Group=smsgw
+WorkingDirectory=/opt/smsgw
+ExecStart=/opt/smsgw/venv/bin/python -m smsgw
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/smsgw/data
+
+[Install]
+WantedBy=multi-user.target

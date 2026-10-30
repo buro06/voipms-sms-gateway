@@ -1,0 +1,11 @@
+# /etc/caddy/Caddyfile — replace sms.example.com with your DNS/DDNS name.
+# Caddy gets a Let's Encrypt certificate automatically (needs ports 80 and 443 forwarded to this VM).
+# Access logging is deliberately off: callback URLs carry the secret and message text.
+sms.example.com {
+	handle /voipms/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle {
+		respond 404
+	}
+}
