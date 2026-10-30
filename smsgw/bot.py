@@ -3,7 +3,15 @@ import asyncio
 import html
 import logging
 
-from telegram import Message, Update
+from telegram import (
+    BotCommandScopeAllChatAdministrators,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeAllPrivateChats,
+    BotCommandScopeChat,
+    BotCommandScopeDefault,
+    Message,
+    Update,
+)
 from telegram.constants import ChatType, ParseMode
 from telegram.error import TelegramError
 from telegram.ext import (
@@ -39,6 +47,29 @@ Each phone number has its own topic. Anything posted in a number's topic is text
 /quota – sends used today
 
 Text up to 160 chars goes as SMS; longer text and photos (up to 3 per message) go as MMS."""
+
+
+COMMANDS = [
+    ("new", "Start or open a conversation: /new 5551234567 [name]"),
+    ("name", "Set this conversation's contact name"),
+    ("close", "Archive this conversation"),
+    ("reopen", "Reopen this conversation"),
+    ("contacts", "List conversations"),
+    ("quota", "SMS/MMS sends used today"),
+    ("help", "How the gateway works"),
+]
+
+
+async def publish_commands(bot, chat_id: int) -> None:
+    """Replace any command menus left by a previous bot with this gateway's, shown only in the group."""
+    for scope in (
+        BotCommandScopeDefault(),
+        BotCommandScopeAllPrivateChats(),
+        BotCommandScopeAllGroupChats(),
+        BotCommandScopeAllChatAdministrators(),
+    ):
+        await bot.delete_my_commands(scope=scope)
+    await bot.set_my_commands(COMMANDS, scope=BotCommandScopeChat(chat_id))
 
 
 class Gateway:

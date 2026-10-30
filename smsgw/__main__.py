@@ -4,9 +4,10 @@ import signal
 
 from aiohttp import web
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import AIORateLimiter, Application
 
-from .bot import Gateway
+from .bot import Gateway, publish_commands
 from .config import Settings
 from .inbound import Inbound
 from .outbound import Outbound
@@ -54,6 +55,11 @@ async def main() -> int:
         else:
             await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
             log.info("polling Telegram as @%s", app.bot.username)
+            if chat_id != 0:
+                try:
+                    await publish_commands(app.bot, chat_id)
+                except TelegramError:
+                    log.exception("could not publish the command menu")
             if chat_id == 0:
                 log.warning("TELEGRAM_CHAT_ID not set: discovery mode. Message the bot in your group to get its id.")
             else:
