@@ -44,6 +44,17 @@ async def main() -> int:
     # access_log=None: callback URLs carry the webhook secret and message text.
     runner = web.AppRunner(make_app(settings, voipms, inbound), access_log=None)
     await runner.setup()
+    try:
+        return await _serve(settings, app, runner, store, voipms, inbound, stop)
+    finally:
+        # Always release the SQLite thread and sockets, or the process can't exit after an error.
+        await runner.cleanup()
+        await voipms.aclose()
+        await store.close()
+
+
+async def _serve(settings, app, runner, store, voipms, inbound, stop) -> int:
+    chat_id = settings.telegram_chat_id
     reconcile_task = None
     problems: list[str] = []
     async with app:
@@ -53,6 +64,7 @@ async def main() -> int:
             log.error("Fix the above in Telegram and restart the gateway.")
             stop.set()
         else:
+            await app.start()
             await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
             log.info("polling Telegram as @%s", app.bot.username)
             if chat_id != 0:
@@ -74,9 +86,6 @@ async def main() -> int:
             await app.stop()
     if reconcile_task:
         await reconcile_task
-    await runner.cleanup()
-    await voipms.aclose()
-    await store.close()
     return 1 if problems else 0
 
 
