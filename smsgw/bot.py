@@ -50,6 +50,7 @@ class Gateway:
         self._albums: dict[str, list[Message]] = {}
 
     def register(self, app: Application) -> None:
+        app.add_error_handler(self._error)
         app.add_handler(TypeHandler(Update, self._gate), group=-1)
         app.add_handler(CommandHandler(["start", "help"], self._help))
         app.add_handler(CommandHandler("new", self._new))
@@ -69,6 +70,7 @@ class Gateway:
 
     async def _gate(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         chat, user, msg = update.effective_chat, update.effective_user, update.effective_message
+        log.info("update %s from chat %s user %s", update.update_id, chat and chat.id, user and user.id)
         if self.settings.telegram_chat_id == 0:
             log.info("discovery mode: update from chat %s (%s), user %s", chat and chat.id, chat and chat.type, user and user.id)
             if msg and chat:
@@ -90,6 +92,9 @@ class Gateway:
             if msg and user and not user.is_bot:
                 await msg.reply_text(f"Not sent: your user id {user.id} is not in ALLOWED_USER_IDS.")
             raise ApplicationHandlerStop
+
+    async def _error(self, update: object, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+        log.error("error handling update %s", getattr(update, "update_id", update), exc_info=ctx.error)
 
     # --- commands -----------------------------------------------------------------
 
