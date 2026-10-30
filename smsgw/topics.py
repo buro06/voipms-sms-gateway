@@ -4,7 +4,8 @@ import logging
 from typing import Awaitable, Callable, TypeVar
 
 from telegram import Bot
-from telegram.error import BadRequest, TelegramError
+from telegram.constants import ChatMemberStatus
+from telegram.error import BadRequest, ChatMigrated, TelegramError
 
 from .numbers import pretty
 from .store import Contact, Store
@@ -28,6 +29,27 @@ def topic_title(contact: Contact) -> str:
 def topic_link(chat_id: int, thread_id: int) -> str:
     internal = str(chat_id).removeprefix("-100")
     return f"https://t.me/c/{internal}/{thread_id}"
+
+
+async def check_chat(bot: Bot, chat_id: int) -> list[str]:
+    """Return human-readable problems that would stop the gateway from working in this chat."""
+    try:
+        chat = await bot.get_chat(chat_id)
+    except ChatMigrated as e:
+        return [f"Chat {chat_id} was upgraded to a supergroup; set TELEGRAM_CHAT_ID={e.new_chat_id}"]
+    except TelegramError as e:
+        return [f"Cannot access chat {chat_id} ({e}); is the bot a member and the id correct?"]
+    problems = []
+    if not chat.is_forum:
+        problems.append(f'"{chat.title}" does not have Topics enabled: Group > Edit > turn on Topics')
+    member = await bot.get_chat_member(chat_id, bot.id)
+    if member.status == ChatMemberStatus.OWNER:
+        return problems
+    if member.status != ChatMemberStatus.ADMINISTRATOR:
+        problems.append("The bot is not an admin of the group: promote it and allow Manage Topics")
+    elif not getattr(member, "can_manage_topics", False):
+        problems.append("The bot is an admin but lacks the Manage Topics permission")
+    return problems
 
 
 class Topics:
