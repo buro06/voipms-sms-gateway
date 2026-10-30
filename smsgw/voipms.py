@@ -73,7 +73,10 @@ class VoipMsClient:
                     raise
                 log.warning("voip.ms %s: connect error, retrying in %.0fs", method, delay)
             else:
-                resp.raise_for_status()
+                if resp.status_code >= 400:
+                    # voip.ms answers broken requests (e.g. oversized media) with a bare HTTP error.
+                    log.warning("voip.ms %s: HTTP %d: %.300s", method, resp.status_code, resp.text)
+                    raise VoipMsError(f"http_{resp.status_code}")
                 body = resp.json()
                 status = body.get("status")
                 if status == "success":

@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     reconcile_interval: int = 300  # seconds
     # How to send text longer than 160 chars: one MMS (up to 2048 chars) or several SMS.
     long_text_mode: Literal["mms", "split"] = "mms"
-    mms_max_image_bytes: int = 900_000
+    # Per image before base64 (+37%); voip.ms rejects base64 media over ~1.2 MB and carriers prefer < 1 MB.
+    mms_max_image_bytes: int = 600_000
     log_level: str = "INFO"
 
     @property

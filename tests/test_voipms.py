@@ -83,3 +83,12 @@ async def test_recent_inbound_merges_mms_media(client):
 async def test_recent_inbound_empty(client):
     respx.get(URL).respond(json={"status": "no_sms"})
     assert await client.recent_inbound("5145550000") == []
+
+
+@respx.mock
+async def test_http_error_becomes_voipms_error(client):
+    route = respx.post(URL).respond(500, text="Internal Server Error")
+    with pytest.raises(VoipMsError) as e:
+        await client.send_mms("5145550000", "5145551234", "", [(b"x", "image/jpeg")])
+    assert e.value.status == "http_500"
+    assert route.call_count == 1  # a send is never retried after the server saw it
