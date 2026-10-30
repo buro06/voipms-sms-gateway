@@ -33,8 +33,12 @@ async def test_send_sms_returns_id(client):
 async def test_send_mms_posts_base64(client):
     route = respx.post(URL).respond(json={"status": "success", "mms": "7"})
     assert await client.send_mms("5145550000", "5145551234", "pic", [(b"\xff\xd8jpeg", "image/jpeg")]) == "7"
-    body = route.calls.last.request.content.decode()
-    assert "method=sendMMS" in body and "media1=data%3Aimage%2Fjpeg%3Bbase64%2C" in body
+    request = route.calls.last.request
+    assert request.headers["content-type"].startswith("multipart/form-data")
+    body = request.content.decode()
+    assert 'name="method"\r\n\r\nsendMMS' in body
+    assert 'name="media1"\r\n\r\ndata:image/jpeg;base64,' in body
+    assert "filename=" not in body
 
 
 @respx.mock

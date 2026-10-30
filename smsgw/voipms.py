@@ -64,7 +64,9 @@ class VoipMsClient:
         for attempt in range(5):
             try:
                 if post:
-                    resp = await self._http.post(self._url, data=data)
+                    # multipart/form-data like voip.ms's PHP example; a urlencoded POST hits their SOAP handler.
+                    fields = {k: (None, str(v)) for k, v in data.items()}
+                    resp = await self._http.post(self._url, files=fields)
                 else:
                     resp = await self._http.get(self._url, params=data)
             except httpx.ConnectError:
