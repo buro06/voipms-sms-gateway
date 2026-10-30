@@ -86,7 +86,9 @@ class Gateway:
             raise ApplicationHandlerStop
         allowed = self.settings.allowed_users
         if allowed and (user is None or user.id not in allowed):
-            log.info("ignoring update from non-allowed user %s", user and user.id)
+            log.warning("ignoring message from user %s: not in ALLOWED_USER_IDS", user and user.id)
+            if msg and user and not user.is_bot:
+                await msg.reply_text(f"Not sent: your user id {user.id} is not in ALLOWED_USER_IDS.")
             raise ApplicationHandlerStop
 
     # --- commands -----------------------------------------------------------------
@@ -175,6 +177,8 @@ class Gateway:
 
     async def _topic_message(self, update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         msg = update.effective_message
+        log.info("topic message %s in thread %s from user %s", msg.message_id, msg.message_thread_id,
+                 msg.from_user and msg.from_user.id)
         if msg.media_group_id:
             album = self._albums.setdefault(msg.media_group_id, [])
             album.append(msg)
@@ -227,13 +231,17 @@ class Gateway:
             await self._react(msgs, FAIL_REACTION)
             await first.reply_text("❌ Not sent – gateway error (see logs).")
             return
-        await self._react(msgs, OK_REACTION)
+        if not await self._react(msgs, OK_REACTION):
+            await first.reply_text("✅ Sent")
         if unsupported:
             await first.reply_text("Sent, but some attachments were skipped (only photos are supported).")
 
-    async def _react(self, msgs: list[Message], emoji: str) -> None:
+    async def _react(self, msgs: list[Message], emoji: str) -> bool:
+        """React to msgs; False if Telegram refused (e.g. the group restricts reactions)."""
         for m in msgs:
             try:
                 await m.set_reaction(emoji)
-            except TelegramError:
-                log.debug("could not react to message %s", m.message_id)
+            except TelegramError as e:
+                log.warning("could not react to message %s: %s", m.message_id, e)
+                return False
+        return True
