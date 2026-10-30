@@ -5,18 +5,12 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=smsgw
-Group=smsgw
-WorkingDirectory=/opt/smsgw
-ExecStart=/opt/smsgw/venv/bin/python -m smsgw
+# Replace YOUR_USER and the path with where you cloned the repo.
+User=YOUR_USER
+WorkingDirectory=/home/YOUR_USER/voipms-sms-gateway
+ExecStart=/home/YOUR_USER/voipms-sms-gateway/.venv/bin/python -m smsgw
 Restart=always
 RestartSec=5
-
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
-ReadWritePaths=/opt/smsgw/data
 
 [Install]
 WantedBy=multi-user.target

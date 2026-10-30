@@ -71,25 +71,34 @@ Plain messages in General are never sent as SMS.
 3. Add the bot and make it an **admin** with the **Manage Topics** permission.
    - Admin rights also let the bot see every message, so you don't need to change privacy mode.
 
-### 3. VM (Debian/Ubuntu, Python ≥ 3.10)
+### 3. Install (any Linux VM with Python ≥ 3.10)
 
 ```bash
-sudo useradd --system --home /opt/smsgw --shell /usr/sbin/nologin smsgw
-sudo mkdir -p /opt/smsgw/data && sudo chown -R smsgw:smsgw /opt/smsgw
-sudo -u smsgw git clone https://github.com/<you>/voipms-sms-gateway /opt/smsgw/src
-sudo -u smsgw python3 -m venv /opt/smsgw/venv
-sudo -u smsgw /opt/smsgw/venv/bin/pip install /opt/smsgw/src
-sudo -u smsgw cp /opt/smsgw/src/deploy/.env.example /opt/smsgw/.env
-sudo chmod 600 /opt/smsgw/.env && sudo -u smsgw nano /opt/smsgw/.env
-sudo cp /opt/smsgw/src/deploy/smsgw.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now smsgw
-journalctl -u smsgw -f
+git clone https://github.com/<you>/voipms-sms-gateway
+cd voipms-sms-gateway
+python3 -m venv .venv
+.venv/bin/pip install .
+cp deploy/.env.example .env
+chmod 600 .env
+nano .env
+.venv/bin/python -m smsgw
 ```
 
+Run it from the repo folder, because it reads `.env` and stores `smsgw.db` there.
+
 **Finding the chat id:**
-1. Leave `TELEGRAM_CHAT_ID=0` and start the service.
+1. Leave `TELEGRAM_CHAT_ID=0` and start the gateway.
 2. Post any message in the group. The bot replies with the chat id (`-100…`) and your user id.
-3. Put the chat id into `.env` and run `sudo systemctl restart smsgw`.
+3. Put the chat id into `.env` and restart the gateway.
+
+**Start on boot (optional):**
+1. Edit `deploy/smsgw.service` and replace `YOUR_USER` and the path with your own.
+2. Run:
+   ```bash
+   sudo cp deploy/smsgw.service /etc/systemd/system/
+   sudo systemctl enable --now smsgw
+   journalctl -u smsgw -f
+   ```
 
 ### 4. Router and Caddy
 
